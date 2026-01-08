@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Lista de EPCs</h2>
+<a href="/relatorio/epcs" class="btn btn-danger btn-pdf">
+  <i class="bi bi-file-earmark-pdf"></i>
+</a>
+
+<a href="/cadastrar" class="btn btn-secondary">Voltar</a>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+           
+            <th>Nome</th>
+            <th>Local da instalação</th>
+            <th>Status</th>
+            <th>Quantidade</th>
+            
+        </tr>
+    </thead>
+    <tbody>
+        {% for epc in epcs %}
+        <tr>
+            
+            <td>{{ epc.nome }}</td>
+            </td>
+            <td>{{ epc.local_instalacao }}</td>
+            <td>{{ epc.status_epc }}</td>
+            <td>{{ epc.quantidade }}         
+                 <a href="/epc/editar/{{ epc.id }}"
+       class="btn btn-warning btn-sm">
+      <i class="bi bi-pencil"></i>
+    </a>
+            
+             
+                <td> <a href="/epc/excluir/{{ epc.id }}"
+       class="btn btn-danger btn-sm"
+       onclick="return confirm('Deseja excluir este EPC?');">
+      <i class="bi bi-trash"></i>
+    </a></td>
+            </td>
+            
+        </tr>
+       
+    
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}

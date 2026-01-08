@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Cadastrar EPI / EPC</h2>
+
+<form method="post">
+
+  <!-- Tipo -->
+  <div class="mb-3">
+    <label class="form-label">Tipo</label>
+    <select name="tipo" id="tipo" class="form-select" onchange="mostrarCampos()">
+      <option value="epi">EPI</option>
+      <option value="epc">EPC</option>
+    </select>
+  </div>
+
+  <!-- Campos comuns -->
+  <div class="mb-3">
+    <label class="form-label">Nome</label>
+    <input type="text" name="nome" class="form-control" required>
+  </div>
+
+  <div class="mb-3">
+    <label class="form-label">Descrição</label>
+    <input type="text" name="descricao" class="form-control">
+  </div>
+
+  <!-- EPI -->
+    <div class="mb-3" id="campo_quantidade">
+    <label class="form-label">Quantidade</label>
+    <input type="number" name="quantidade" id="quantidade" class="form-control" min="0">
+  </div>
+
+  
+
+  <!-- EPI - Tamanho -->
+<div class="mb-3" id="campo_tamanho">
+  <label class="form-label">Tamanho</label>
+  <input type="text" name="tamanho" id="tamanho" class="form-control">
+</div>
+
+
+  <!-- EPC -->
+
+  <div class="mb-3 d-none" id="campo_local">
+    <label class="form-label">Local de Instalação</label>
+    <input type="text" name="local_instalacao" id="local_instalacao" class="form-control">
+  </div>
+
+  <div class="mb-3 d-none" id="campo_status">
+    <label class="form-label">Status</label>
+    <select name="status_epc" id="status_epc" class="form-select">
+      <option value="Ativo">Ativo</option>
+      <option value="Em manutenção">Em manutenção</option>
+      <option value="Inativo">Inativo</option>
+    </select>
+  </div>
+
+  <button class="btn btn-primary">Salvar</button>
+  <a href="/" class="btn btn-secondary ms-2">Cancelar</a>
+</form>
+
+<script>
+function mostrarCampos() {
+    const tipo = document.getElementById('tipo').value;
+
+    const campoQtd = document.getElementById('campo_quantidade');
+    const campoTamanho = document.getElementById('campo_tamanho');
+    const campoLocal = document.getElementById('campo_local');
+    const campoStatus = document.getElementById('campo_status');
+
+    const qtd = document.getElementById('quantidade');
+    const tamanho = document.getElementById('tamanho');
+    const local = document.getElementById('local_instalacao');
+    const status = document.getElementById('status_epc');
+
+    if (tipo === 'epi') {
+        campoQtd.classList.remove('d-none');
+        campoTamanho.classList.remove('d-none');
+        campoLocal.classList.add('d-none');
+        campoStatus.classList.add('d-none');
+
+        qtd.required = true;
+        tamanho.required = true;
+        local.required = false;
+        status.required = false;
+    } else {
+        campoQtd.classList.remove('d-none');
+        campoTamanho.classList.add('d-none');
+        campoLocal.classList.remove('d-none');
+        campoStatus.classList.remove('d-none');
+
+        qtd.required = true;
+        tamanho.required = false;
+        local.required = true;
+        status.required = true;
+    }
+}
+
+window.onload = mostrarCampos;
+</script>
+
+
+{% endblock %}

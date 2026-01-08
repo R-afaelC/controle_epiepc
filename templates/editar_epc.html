@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Editar Quantidade do EPC</h2>
+
+<form method="post">
+  <div class="mb-3">
+    <label class="form-label">Quantidade</label>
+    <input type="number"
+           name="quantidade"
+           class="form-control"
+           value="{{ epc.quantidade }}"
+           min="0"
+           required>
+  </div>
+
+  <button class="btn btn-primary">Salvar</button>
+  
+</form>
+{% endblock %}
