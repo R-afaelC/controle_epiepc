@@ -59,7 +59,7 @@ def cadastrar():
 def listar_epis():
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT id, nome, descricao, quantidade FROM epi")
+    cursor.execute("SELECT id, nome, descricao, tamanho, quantidade FROM epi")
     epis = cursor.fetchall()
     conn.close()
     return render_template("listar_epi.html", epis=epis)
