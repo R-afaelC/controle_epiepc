@@ -1,19 +1,11 @@
 import mysql.connector
-import os
+
 def get_connection():
-     return mysql.connector.connect( 
-            host=os.environ["MYSQL_HOST"],
-            user=os.environ["USUARIO_MYSQL"],
-            password=os.environ["MYSQL_PASSWORD"],
-            database=os.environ["BANCO_DE_DADOS_MYSQL"],
-            port=int(os.environ["MYSQL_PORT"]),
-             connection_timeout=5
-              )
-
-
-
-
-
-
+    return mysql.connector.connect(
+        host="localhost",
+        user="root",
+        password="1686074670",
+        database="controle"  # nome do banco
+    )
 
 
