@@ -4,9 +4,7 @@ from flask import send_file
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 import io
-from db import criar_tabelas
-from flask import Flask
-from db import criar_tabelas
+
 
 
 app = Flask(__name__)
@@ -261,12 +259,3 @@ import os
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
-
-criar_tabelas()
-
-@app.route("/")
-def home():
-    return "Sistema funcionando"
-
-if __name__ == "__main__":
-    app.run()
