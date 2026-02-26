@@ -4,6 +4,9 @@ from flask import send_file
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 import io
+from sqlalchemy import text
+
+
 
 
 
@@ -71,19 +74,19 @@ def teste_db():
 @app.route("/epis")
 def listar_epis():
     conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT id, nome, descricao, tamanho, quantidade FROM epi")
-    epis = cursor.fetchall()
+    result = conn.execute(text("SELECT id, nome, descricao, tamanho, quantidade FROM epi"))
+    epis = [dict(row._mapping) for row in result]
     conn.close()
+
     return render_template("listar_epi.html", epis=epis)
+
 
 # ------------------ Listagem de EPC ------------------
 @app.route("/epcs")
 def listar_epcs():
     conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT id, nome, descricao, quantidade, local_instalacao, status_epc FROM epc")
-    epcs = cursor.fetchall()
+    result = conn.execute(text("SELECT id, nome, descricao, quantidade, local_instalacao, status_epc FROM epc"))
+    epcs = [dict(row._mapping) for row in result]
     conn.close()
     return render_template("listar_epc.html", epcs=epcs)
 
