@@ -59,16 +59,6 @@ def cadastrar():
     # GET: exibe o formulário
     return render_template("cadastrar.html")
 
-# ------------------ TESTE TESTE DB------------------
-@app.route("/teste-db")
-def teste_db():
-    try:
-        conn = get_connection()
-        conn.close()
-        return "Conexão com o banco OK!"
-    except Exception as e:
-        return f"ERRO: {e}"
-
 
 # ------------------ Listagem de EPI ------------------
 @app.route("/epis")
