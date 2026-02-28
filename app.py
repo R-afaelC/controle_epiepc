@@ -18,47 +18,63 @@ def index():
     return render_template("index.html")
 
 # ------------------ Cadastro único de EPI ou EPC ------------------
+
 @app.route("/cadastrar", methods=["GET", "POST"])
 def cadastrar():
     if request.method == "POST":
-        tipo = request.form["tipo"]  # 'epi' ou 'epc'
+        tipo = request.form["tipo"]
         nome = request.form["nome"]
         descricao = request.form["descricao"]
-       
-        
 
         conn = get_connection()
-        cursor = conn.cursor()
 
-        if tipo == "epi":
-            quantidade = int(request.form["quantidade"])
-            tamanho = request.form["tamanho"]
-            cursor.execute(
-                "INSERT INTO epi (nome, descricao, quantidade, tamanho) VALUES (%s, %s, %s,%s)",
-                (nome, descricao, quantidade, tamanho)
-            )
-            conn.commit()
+        try:
+            if tipo == "epi":
+                quantidade = int(request.form["quantidade"])
+                tamanho = request.form["tamanho"]
+
+                conn.execute(
+                    text("""
+                        INSERT INTO epi (nome, descricao, quantidade, tamanho)
+                        VALUES (:nome, :descricao, :quantidade, :tamanho)
+                    """),
+                    {
+                        "nome": nome,
+                        "descricao": descricao,
+                        "quantidade": quantidade,
+                        "tamanho": tamanho
+                    }
+                )
+
+                conn.commit()
+                return redirect(url_for("listar_epis"))
+
+            else:  # EPC
+                quantidade = int(request.form["quantidade"])
+                local = request.form["local_instalacao"]
+                status = request.form["status_epc"]
+
+                conn.execute(
+                    text("""
+                        INSERT INTO epc (nome, descricao, quantidade, local_instalacao, status_epc)
+                        VALUES (:nome, :descricao, :quantidade, :local, :status)
+                    """),
+                    {
+                        "nome": nome,
+                        "descricao": descricao,
+                        "quantidade": quantidade,
+                        "local": local,
+                        "status": status
+                    }
+                )
+
+                conn.commit()
+                return redirect(url_for("listar_epcs"))
+
+        finally:
             conn.close()
-            return redirect(url_for("listar_epis"))
 
-        else:  # EPC
-            quantidade = int(request.form["quantidade"])
-            local = request.form["local_instalacao"]
-            status = request.form["status_epc"]
-            
-
-    
-            cursor.execute(
-                "INSERT INTO epc (nome, descricao, quantidade, local_instalacao, status_epc) VALUES (%s, %s, %s, %s,%s)",
-                (nome, descricao, quantidade, local, status,)
-            )
-            conn.commit()
-            conn.close()
-            return redirect(url_for("listar_epcs"))
-
-    # GET: exibe o formulário
     return render_template("cadastrar.html")
-
 
 # ------------------ Listagem de EPI ------------------
 @app.route("/epis")
@@ -69,7 +85,6 @@ def listar_epis():
     conn.close()
 
     return render_template("listar_epi.html", epis=epis)
-
 
 # ------------------ Listagem de EPC ------------------
 @app.route("/epcs")
@@ -85,10 +100,14 @@ def listar_epcs():
 @app.route("/relatorio/epis")
 def relatorio_epis():
     conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT nome, descricao, tamanho, quantidade FROM epi")
-    epis = cursor.fetchall()
-    conn.close()
+
+    try:
+        result = conn.execute(
+            text("SELECT nome, descricao, tamanho, quantidade FROM epi")
+        )
+        epis = result.mappings().all()
+    finally:
+        conn.close()
 
     buffer = io.BytesIO()
     pdf = canvas.Canvas(buffer, pagesize=A4)
@@ -115,25 +134,25 @@ def relatorio_epis():
     pdf.save()
     buffer.seek(0)
 
-    return send_file(
-        buffer,
-        as_attachment=True,
-        download_name="relatorio_epis.pdf",
-        mimetype="application/pdf"
-    )
+    return send_file(buffer, as_attachment=True,
+                     download_name="relatorio_epis.pdf",
+                     mimetype="application/pdf")
 
 #------------------- Função PDF EPC-------------------
 
 @app.route("/relatorio/epcs")
 def relatorio_epcs():
+    @app.route("/relatorio/epcs")
+def relatorio_epcs():
     conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("""
-        SELECT nome, descricao, status_epc, quantidade 
-        FROM epc
-    """)
-    epcs = cursor.fetchall()
-    conn.close()
+
+    try:
+        result = conn.execute(
+            text("SELECT nome, descricao, status_epc, quantidade FROM epc")
+        )
+        epcs = result.mappings().all()
+    finally:
+        conn.close()
 
     buffer = io.BytesIO()
     pdf = canvas.Canvas(buffer, pagesize=A4)
@@ -177,73 +196,69 @@ def relatorio_epcs():
 @app.route("/epc/excluir/<int:id>")
 def excluir_epc(id):
     conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM epc WHERE id = %s", (id,))
-    conn.commit()
-    conn.close()
-
-    return redirect(url_for("listar_epcs"))
-
-@app.route("/epi/excluir/<int:id>")
-def excluir_epi(id):
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM epi WHERE id = %s", (id,))
-    conn.commit()
-    conn.close()
-
-    return redirect(url_for("listar_epis"))
-
+    try:
+        conn.execute(
+            text("DELETE FROM epc WHERE id = :id"),
+            {"id": id}
+        )
+        conn.commit()
+        return redirect(url_for("listar_epcs"))
+    finally:
+        conn.close()
 
 
 # ------------------ Editar EPI ------------------
 @app.route("/epi/editar/<int:id>", methods=["GET", "POST"])
 def editar_epi(id):
     conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
 
-    if request.method == "POST":
-        quantidade = int(request.form["quantidade"])
+    try:
+        if request.method == "POST":
+            quantidade = int(request.form["quantidade"])
 
-        cursor.execute(
-            "UPDATE epi SET quantidade = %s WHERE id = %s",
-            (quantidade, id)
+            conn.execute(
+                text("UPDATE epi SET quantidade = :q WHERE id = :id"),
+                {"q": quantidade, "id": id}
+            )
+            conn.commit()
+            return redirect(url_for("listar_epis"))
+
+        result = conn.execute(
+            text("SELECT * FROM epi WHERE id = :id"),
+            {"id": id}
         )
-        conn.commit()
+
+        epi = result.mappings().first()
+        return render_template("editar_epi.html", epi=epi)
+
+    finally:
         conn.close()
-
-        return redirect(url_for("listar_epis"))
-
-    # GET → buscar dados do EPI
-    cursor.execute("SELECT * FROM epi WHERE id = %s", (id,))
-    epi = cursor.fetchone()
-    conn.close()
-
-    return render_template("editar_epi.html", epi=epi)
 #-------------------Editar EPC-------------
 @app.route("/epc/editar/<int:id>", methods=["GET", "POST"])
 def editar_epc(id):
     conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
 
-    if request.method == "POST":
-        quantidade = int(request.form["quantidade"])
+    try:
+        if request.method == "POST":
+            quantidade = int(request.form["quantidade"])
 
-        cursor.execute(
-            "UPDATE epc SET quantidade = %s WHERE id = %s",
-            (quantidade, id)
+            conn.execute(
+                text("UPDATE epc SET quantidade = :q WHERE id = :id"),
+                {"q": quantidade, "id": id}
+            )
+            conn.commit()
+            return redirect(url_for("listar_epcs"))
+
+        result = conn.execute(
+            text("SELECT * FROM epc WHERE id = :id"),
+            {"id": id}
         )
-        conn.commit()
+
+        epc = result.mappings().first()
+        return render_template("editar_epc.html", epc=epc)
+
+    finally:
         conn.close()
-
-        return redirect(url_for("listar_epcs"))
-
-    # GET → buscar EPC atual
-    cursor.execute("SELECT * FROM epc WHERE id = %s", (id,))
-    epc = cursor.fetchone()
-    conn.close()
-
-    return render_template("editar_epc.html", epc=epc)
 
 
 # ------------------ Start Flask ------------------
