@@ -142,8 +142,6 @@ def relatorio_epis():
 
 @app.route("/relatorio/epcs")
 def relatorio_epcs():
-    @app.route("/relatorio/epcs")
-def relatorio_epcs():
     conn = get_connection()
 
     try:
