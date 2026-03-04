@@ -235,6 +235,38 @@ def editar_epc(id):
     finally:
         conn.close()
 
+#------------------ tabela------------
+@app.route("/criar-tabelas")
+def criar_tabelas():
+    conn = get_connection()
+
+    with conn.cursor() as cur:
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS epi (
+                id SERIAL PRIMARY KEY,
+                nome VARCHAR(100),
+                descricao TEXT,
+                quantidade INTEGER,
+                tamanho VARCHAR(20)
+            );
+        """)
+
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS epc (
+                id SERIAL PRIMARY KEY,
+                nome VARCHAR(100),
+                descricao TEXT,
+                quantidade INTEGER,
+                local_instalacao VARCHAR(100),
+                status_epc VARCHAR(50)
+            );
+        """)
+
+        conn.commit()
+
+    conn.close()
+    return "Tabelas criadas com sucesso!"
+
 
 # ------------------ Start Flask ------------------
 import os
