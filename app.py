@@ -73,7 +73,7 @@ def listar_epis():
         colunas = [desc[0] for desc in cur.description]
         linhas = cur.fetchall()
         
-    coon.close()
+    conn.close()
     epis = [
         dict(zip(colunas, row))
           for row in linhas
