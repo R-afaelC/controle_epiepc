@@ -4,7 +4,9 @@ from flask import send_file
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 import io
-from sqlalchemy import text
+import psycopg
+from psycopg.rows import dict_row
+
 
 
 
@@ -29,59 +31,51 @@ def cadastrar():
         conn = get_connection()
 
         try:
-            if tipo == "epi":
-                quantidade = int(request.form["quantidade"])
-                tamanho = request.form["tamanho"]
+            with conn.cursor() as cur:
 
-                conn.execute(
-                    text("""
+                if tipo == "epi":
+                    quantidade = int(request.form["quantidade"])
+                    tamanho = request.form["tamanho"]
+
+                    cur.execute("""
                         INSERT INTO epi (nome, descricao, quantidade, tamanho)
-                        VALUES (:nome, :descricao, :quantidade, :tamanho)
-                    """),
-                    {
-                        "nome": nome,
-                        "descricao": descricao,
-                        "quantidade": quantidade,
-                        "tamanho": tamanho
-                    }
-                )
+                        VALUES (%s, %s, %s, %s)
+                    """, (nome, descricao, quantidade, tamanho))
 
-                conn.commit()
-                return redirect(url_for("listar_epis"))
+                    conn.commit()
+                    return redirect(url_for("listar_epis"))
 
-            else:  # EPC
-                quantidade = int(request.form["quantidade"])
-                local = request.form["local_instalacao"]
-                status = request.form["status_epc"]
+                else:  # EPC
+                    quantidade = int(request.form["quantidade"])
+                    local = request.form["local_instalacao"]
+                    status = request.form["status_epc"]
 
-                conn.execute(
-                    text("""
+                    cur.execute("""
                         INSERT INTO epc (nome, descricao, quantidade, local_instalacao, status_epc)
-                        VALUES (:nome, :descricao, :quantidade, :local, :status)
-                    """),
-                    {
-                        "nome": nome,
-                        "descricao": descricao,
-                        "quantidade": quantidade,
-                        "local": local,
-                        "status": status
-                    }
-                )
+                        VALUES (%s, %s, %s, %s, %s)
+                    """, (nome, descricao, quantidade, local, status))
 
-                conn.commit()
-                return redirect(url_for("listar_epcs"))
+                    conn.commit()
+                    return redirect(url_for("listar_epcs"))
 
         finally:
             conn.close()
 
     return render_template("cadastrar.html")
-
 # ------------------ Listagem de EPI ------------------
 @app.route("/epis")
 def listar_epis():
     conn = get_connection()
-    result = conn.execute(text("SELECT id, nome, descricao, tamanho, quantidade FROM epi"))
-    epis = [dict(row._mapping) for row in result]
+
+    with conn.cursor() as cur:
+        cur.execute("SELECT id, nome, descricao, tamanho, quantidade FROM epi")
+
+        colunas = [desc[0] for desc in cur.description]
+    epis = [
+        dict(zip(colunas, row))
+          for row in cur.fetchall()
+          ]
+    
     conn.close()
 
     return render_template("listar_epi.html", epis=epis)
@@ -90,22 +84,38 @@ def listar_epis():
 @app.route("/epcs")
 def listar_epcs():
     conn = get_connection()
-    result = conn.execute(text("SELECT id, nome, descricao, quantidade, local_instalacao, status_epc FROM epc"))
-    epcs = [dict(row._mapping) for row in result]
+
+    with conn.cursor() as cur:
+        cur.execute("""
+            SELECT id, nome, descricao, quantidade, 
+                   local_instalacao, status_epc 
+            FROM epc
+        """)
+        colunas = [desc[0] for desc in cur.description]
+        linhas = cur.fetchall()
+
     conn.close()
+
+    epcs = [
+        dict(zip(colunas, row))
+        for row in linhas
+    ]
+
     return render_template("listar_epc.html", epcs=epcs)
 
 
 #------------------- Função PDF EPI-------------------
+from psycopg.rows import dict_row
+
 @app.route("/relatorio/epis")
 def relatorio_epis():
     conn = get_connection()
+    conn.row_factory = dict_row
 
     try:
-        result = conn.execute(
-            text("SELECT nome, descricao, tamanho, quantidade FROM epi")
-        )
-        epis = result.mappings().all()
+        with conn.cursor() as cur:
+            cur.execute("SELECT nome, descricao, tamanho, quantidade FROM epi")
+            epis = cur.fetchall()
     finally:
         conn.close()
 
@@ -122,7 +132,7 @@ def relatorio_epis():
     pdf.setFont("Helvetica", 10)
 
     for epi in epis:
-        texto = f"Nome: {epi['nome']} | descricao: {epi['descricao']} | tamanho: {epi['tamanho']} | Qtde: {epi['quantidade']}"
+        texto = f"Nome: {epi['nome']} | Descrição: {epi['descricao']} | Tamanho: {epi['tamanho']} | Qtde: {epi['quantidade']}"
         pdf.drawString(40, y, texto)
         y -= 20
 
@@ -134,21 +144,26 @@ def relatorio_epis():
     pdf.save()
     buffer.seek(0)
 
-    return send_file(buffer, as_attachment=True,
-                     download_name="relatorio_epis.pdf",
-                     mimetype="application/pdf")
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name="relatorio_epis.pdf",
+        mimetype="application/pdf"
+    )
 
 #------------------- Função PDF EPC-------------------
+
+from psycopg.rows import dict_row
 
 @app.route("/relatorio/epcs")
 def relatorio_epcs():
     conn = get_connection()
+    conn.row_factory = dict_row
 
     try:
-        result = conn.execute(
-            text("SELECT nome, descricao, status_epc, quantidade FROM epc")
-        )
-        epcs = result.mappings().all()
+        with conn.cursor() as cur:
+            cur.execute("SELECT nome, descricao, status_epc, quantidade FROM epc")
+            epcs = cur.fetchall()
     finally:
         conn.close()
 
@@ -166,12 +181,12 @@ def relatorio_epcs():
 
     for epc in epcs:
         texto = (
-        f"Nome: {epc['nome']} | "
-         f"Descrição: {epc['descricao']} | "
-         f"Status: {epc['status_epc']} | "
-         f"Quantidade: {epc['quantidade']}"
-        
+            f"Nome: {epc['nome']} | "
+            f"Descrição: {epc['descricao']} | "
+            f"Status: {epc['status_epc']} | "
+            f"Quantidade: {epc['quantidade']}"
         )
+
         pdf.drawString(40, y, texto)
         y -= 20
 
@@ -189,70 +204,30 @@ def relatorio_epcs():
         download_name="relatorio_epcs.pdf",
         mimetype="application/pdf"
     )
-
-# ------------------ Apagar intem ------------------
-@app.route("/epc/excluir/<int:id>")
-def excluir_epc(id):
-    conn = get_connection()
-    try:
-        conn.execute(
-            text("DELETE FROM epc WHERE id = :id"),
-            {"id": id}
-        )
-        conn.commit()
-        return redirect(url_for("listar_epcs"))
-    finally:
-        conn.close()
-
-
-# ------------------ Editar EPI ------------------
-@app.route("/epi/editar/<int:id>", methods=["GET", "POST"])
-def editar_epi(id):
-    conn = get_connection()
-
-    try:
-        if request.method == "POST":
-            quantidade = int(request.form["quantidade"])
-
-            conn.execute(
-                text("UPDATE epi SET quantidade = :q WHERE id = :id"),
-                {"q": quantidade, "id": id}
-            )
-            conn.commit()
-            return redirect(url_for("listar_epis"))
-
-        result = conn.execute(
-            text("SELECT * FROM epi WHERE id = :id"),
-            {"id": id}
-        )
-
-        epi = result.mappings().first()
-        return render_template("editar_epi.html", epi=epi)
-
-    finally:
-        conn.close()
 #-------------------Editar EPC-------------
+from psycopg.rows import dict_row
+
 @app.route("/epc/editar/<int:id>", methods=["GET", "POST"])
 def editar_epc(id):
     conn = get_connection()
+    conn.row_factory = dict_row
 
     try:
-        if request.method == "POST":
-            quantidade = int(request.form["quantidade"])
+        with conn.cursor() as cur:
 
-            conn.execute(
-                text("UPDATE epc SET quantidade = :q WHERE id = :id"),
-                {"q": quantidade, "id": id}
-            )
-            conn.commit()
-            return redirect(url_for("listar_epcs"))
+            if request.method == "POST":
+                quantidade = int(request.form["quantidade"])
 
-        result = conn.execute(
-            text("SELECT * FROM epc WHERE id = :id"),
-            {"id": id}
-        )
+                cur.execute(
+                    "UPDATE epc SET quantidade = %s WHERE id = %s",
+                    (quantidade, id)
+                )
+                conn.commit()
+                return redirect(url_for("listar_epcs"))
 
-        epc = result.mappings().first()
+            cur.execute("SELECT * FROM epc WHERE id = %s", (id,))
+            epc = cur.fetchone()
+
         return render_template("editar_epc.html", epc=epc)
 
     finally:

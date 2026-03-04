@@ -1,17 +1,10 @@
 import os
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+import psycopg
 
 DATABASE_URL = os.getenv("DATABASE_URL")
+
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL não está definida.")
 
-# Corrige caso venha como postgres://
-if DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
-
-engine = create_engine(DATABASE_URL, pool_pre_ping=True)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
 def get_connection():
-    return SessionLocal()
+    return psycopg.connect(DATABASE_URL)
