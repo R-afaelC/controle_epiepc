@@ -71,12 +71,14 @@ def listar_epis():
         cur.execute("SELECT id, nome, descricao, tamanho, quantidade FROM epi")
 
         colunas = [desc[0] for desc in cur.description]
+        linhas = cur.fetchall()
+        
+    coon.close()
     epis = [
         dict(zip(colunas, row))
-          for row in cur.fetchall()
+          for row in linhas
           ]
     
-    conn.close()
 
     return render_template("listar_epi.html", epis=epis)
 
