@@ -1,15 +1,9 @@
 from flask import Flask, render_template, request, redirect, url_for
-from db import get_connection
+import sqlite3
 from flask import send_file
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 import io
-import psycopg
-from psycopg.rows import dict_row
-
-
-
-
 
 
 app = Flask(__name__)
