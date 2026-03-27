@@ -230,36 +230,34 @@ def editar_epc(id):
         conn.close()
 
 #------------------ tabela------------
-@app.route("/criar-tabelas")
-def criar_tabelas():
-    conn = get_connection()
+import sqlite3
 
-    with conn.cursor() as cur:
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS epi (
-                id SERIAL PRIMARY KEY,
-                nome VARCHAR(100),
-                descricao TEXT,
-                quantidade INTEGER,
-                tamanho VARCHAR(20)
-            );
-        """)
+def init_db():
+    conn = sqlite3.connect("controle.db")
+    cursor = conn.cursor()
 
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS epc (
-                id SERIAL PRIMARY KEY,
-                nome VARCHAR(100),
-                descricao TEXT,
-                quantidade INTEGER,
-                local_instalacao VARCHAR(100),
-                status_epc VARCHAR(50)
-            );
-        """)
+    cursor.executescript("""
+    CREATE TABLE IF NOT EXISTS epi (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nome TEXT NOT NULL,
+        descricao TEXT,
+        quantidade INTEGER NOT NULL,
+        tamanho TEXT
+    );
 
-        conn.commit()
+    CREATE TABLE IF NOT EXISTS epc (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nome TEXT NOT NULL,
+        descricao TEXT,
+        local_instalacao TEXT,
+        status_epc TEXT,
+        quantidade INTEGER NOT NULL
+    );
+    """)
 
+    conn.commit()
     conn.close()
-    return "Tabelas criadas com sucesso!"
+
 
 
 # ------------------ Start Flask ------------------
